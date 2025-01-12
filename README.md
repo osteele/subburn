@@ -25,7 +25,9 @@ This will create a video with the dialogue audio and synchronized subtitles, per
 - 🎬 Add subtitles to existing videos
 - 🖼️ Use background images for visual interest
 - 🔍 Automatically detect file types
+- ⏳ Show progress with a beautiful TUI
 - 🚀 Open the created video when done
+- 🎯 Automatic transcription using OpenAI Whisper
 
 ## Installation
 
@@ -35,6 +37,29 @@ uv pip install -e .
 ```
 
 ## Usage
+
+### Basic Usage
+
+Create a video from an audio file and its transcript:
+```bash
+subburn audio.mp3 subtitles.srt
+```
+
+### Automatic Transcription
+
+If you have an OpenAI API key, `subburn` can automatically transcribe your audio:
+
+```bash
+export OPENAI_API_KEY=your-api-key
+subburn audio.mp3  # Will create audio.srt and then the video
+```
+
+To disable automatic transcription:
+```bash
+subburn audio.mp3 --no-whisper
+```
+
+### Additional Options
 
 The script automatically detects file types based on their extensions and MIME types. You can provide the files in any order:
 

@@ -5,7 +5,8 @@ description = "Create videos with burnt-in subtitles from audio or video files"
 authors = [{ name = "Oliver Steele", email = "steele@osteele.com" }]
 dependencies = [
     "click>=8.1.7",
-    "rich>=13.7.0"
+    "rich>=13.7.0",
+    "openai>=1.6.0",
 ]
 requires-python = ">=3.10"
 

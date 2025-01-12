@@ -4,11 +4,14 @@ import mimetypes
 import os
 import subprocess
 import sys
+import tempfile
 from dataclasses import dataclass
+from datetime import timedelta
 from pathlib import Path
 from typing import Sequence
 
 import click
+import openai
 from rich.console import Console
 from rich.progress import (
     Progress,
@@ -20,6 +23,91 @@ from rich.progress import (
 )
 
 console = Console()
+
+
+def format_timestamp(seconds: float) -> str:
+    """Format seconds as SRT timestamp (HH:MM:SS,mmm)."""
+    td = timedelta(seconds=seconds)
+    hours = td.seconds // 3600
+    minutes = (td.seconds % 3600) // 60
+    seconds = td.seconds % 60
+    milliseconds = round(td.microseconds / 1000)
+    return f"{hours:02d}:{minutes:02d}:{seconds:02d},{milliseconds:03d}"
+
+
+def convert_to_cjk_punctuation(text: str) -> str:
+    """Convert ASCII punctuation to CJK punctuation for Chinese text."""
+    # Only convert if the text contains Chinese characters
+    if not any(0x4E00 <= ord(c) <= 0x9FFF for c in text):
+        return text
+        
+    punctuation_map = {
+        "?": "？",
+        "!": "！",
+        ",": "，",
+        ".": "。",
+        ":": "：",
+        ";": "；",
+        "(": "（",
+        ")": "）",
+        "[": "【",
+        "]": "】",
+        "~": "～"
+    }
+    
+    for ascii_punct, cjk_punct in punctuation_map.items():
+        text = text.replace(ascii_punct, cjk_punct)
+    
+    return text
+
+
+def create_srt_from_segments(segments: list) -> str:
+    """Create SRT content from Whisper segments."""
+    srt_content = []
+    for i, segment in enumerate(segments, 1):
+        start = format_timestamp(segment.start)
+        end = format_timestamp(segment.end)
+        text = convert_to_cjk_punctuation(segment.text.strip())
+        srt_content.extend([
+            str(i),
+            f"{start} --> {end}",
+            text,
+            ""
+        ])
+    return "\n".join(srt_content)
+
+
+def transcribe_audio(audio_path: Path, progress: Progress, task_id: int) -> Path:
+    """Transcribe audio using OpenAI Whisper API."""
+    if "OPENAI_API_KEY" not in os.environ:
+        raise click.ClickException(
+            "OPENAI_API_KEY environment variable not set. "
+            "Please provide an SRT file or set OPENAI_API_KEY for automatic transcription."
+        )
+
+    progress.update(task_id, description="Transcribing audio with Whisper")
+    client = openai.OpenAI()
+    
+    try:
+        with open(audio_path, "rb") as audio:
+            response = client.audio.transcriptions.create(
+                model="whisper-1",
+                file=audio,
+                response_format="verbose_json",
+                timestamp_granularities=["segment"]
+            )
+    except Exception as e:
+        raise click.ClickException(f"Whisper transcription failed: {str(e)}")
+    
+    # Create SRT file in same directory as audio
+    srt_path = audio_path.with_suffix(".srt")
+    srt_content = create_srt_from_segments(response.segments)
+    
+    with open(srt_path, "w", encoding="utf-8") as f:
+        f.write(srt_content)
+    
+    progress.update(task_id, description="Transcription complete", advance=100)
+    return srt_path
 
 
 @dataclass
@@ -67,8 +155,6 @@ def collect_input_files(files: list[Path]) -> InputFiles:
             raise click.BadParameter(f"Duplicate or conflicting file type: {file}")
     
     # Validate combination
-    if not result.subtitle:
-        raise click.BadParameter("No subtitle file provided")
     if result.audio and result.video:
         raise click.BadParameter("Cannot use both audio and video files")
     if not (result.audio or result.video):
@@ -190,17 +276,24 @@ def open_file(path: Path) -> None:
 @click.option("--width", default=1920, help="Output video width")
 @click.option("--height", default=1080, help="Output video height")
 @click.option("--open", is_flag=True, help="Open the output file when done")
-def main(files: tuple[Path, ...], output: Path | None, width: int, height: int, open: bool) -> None:
+@click.option("--whisper/--no-whisper", default=True, help="Use Whisper for automatic transcription if no SRT file is provided")
+def main(files: tuple[Path, ...], output: Path | None, width: int, height: int, open: bool, whisper: bool) -> None:
     """Create a video with burnt-in subtitles.
 
     Perfect for language learning: combine audio files with their transcripts into
     study materials. You can provide the files in any order - the script will
     automatically detect audio, video, subtitle, and image files.
     
+    If no subtitle file is provided and OPENAI_API_KEY is set in the environment,
+    it will automatically transcribe the audio using OpenAI's Whisper API.
+    
     Examples:
     
         Create a video from an audio file and subtitles:
             subburn audio.mp3 subtitles.srt
+        
+        Create a video with automatic transcription:
+            subburn audio.mp3
         
         Add a background image:
             subburn audio.mp3 subtitles.srt background.jpg
@@ -221,6 +314,17 @@ def main(files: tuple[Path, ...], output: Path | None, width: int, height: int, 
     
     with Progress(*progress_columns, console=console) as progress:
         setup_task = progress.add_task("Setting up...", total=100)
+        
+        # Use Whisper if no subtitle file is provided
+        if not input_files.subtitle and whisper and (input_files.audio or input_files.video):
+            source = input_files.audio or input_files.video
+            input_files.subtitle = transcribe_audio(source, progress, setup_task)
+            console.print(f"[green]Created transcript:[/] {input_files.subtitle}")
+        elif not input_files.subtitle:
+            raise click.BadParameter(
+                "No subtitle file provided. Either provide an SRT file or set OPENAI_API_KEY "
+                "for automatic transcription."
+            )
         
         if input_files.audio:
             # Get audio duration
