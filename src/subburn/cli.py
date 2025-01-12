@@ -40,25 +40,25 @@ def convert_to_cjk_punctuation(text: str) -> str:
     # Only convert if the text contains Chinese characters
     if not any(0x4E00 <= ord(c) <= 0x9FFF for c in text):
         return text
-        
-    punctuation_map = {
-        "?": "？",
-        "!": "！",
+    
+    replacements = {
+        ", ": "，",
+        "! ": "！",
+        "? ": "？",
+        ": ": "：",
+        "; ": "；",
+        ". ": "。",
         ",": "，",
-        ".": "。",
+        "!": "！",
+        "?": "？",
         ":": "：",
         ";": "；",
-        "(": "（",
-        ")": "）",
-        "[": "【",
-        "]": "】",
-        "~": "～"
+        ".": "。",
     }
-    
-    for ascii_punct, cjk_punct in punctuation_map.items():
-        text = text.replace(ascii_punct, cjk_punct)
-    
-    return text
+    result = text
+    for ascii_char, cjk_char in replacements.items():
+        result = result.replace(ascii_char, cjk_char)
+    return result
 
 
 def create_srt_from_segments(segments: list) -> str:

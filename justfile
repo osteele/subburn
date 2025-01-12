@@ -3,18 +3,18 @@ default:
 
 # Run all checks (type checking and linting)
 check:
-    uv run --dev mypy src/
+    uv run --dev python -m mypy src/
     uv run --dev ruff check src/
-    uv run --dev black --check src/
+    uv run --dev python -m black --check src/
 
 # Format code
 fmt:
-    uv run --dev black src/
-    uv run --dev ruff --fix src/
+    uv run --dev python -m black src/
+    uv run --dev python -m ruff check --fix src/
 
 # Run tests
 test:
-    uv run --dev pytest tests/
+    uv run --dev python -m pytest tests/
 
 # Install the package in development mode
 install:
