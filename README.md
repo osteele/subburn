@@ -24,6 +24,7 @@ This will create a video with the dialogue audio and synchronized subtitles, per
 - 🎵 Create videos from audio files and SRT subtitles
 - 🎬 Add subtitles to existing videos
 - 🖼️ Use background images for visual interest
+- 🎨 Generate dynamic background images using DALL-E
 - 🔍 Automatically detect file types
 - ⏳ Show progress with a beautiful TUI
 - 🚀 Open the created video when done
@@ -58,6 +59,21 @@ To disable automatic transcription:
 ```bash
 subburn audio.mp3 --no-whisper
 ```
+
+### Dynamic Background Images
+
+Generate unique background images for each subtitle segment using DALL-E:
+
+```bash
+subburn audio.mp3 --generate-images
+```
+
+Customize the image style:
+```bash
+subburn audio.mp3 --generate-images --image-style "A watercolor painting in pastel colors"
+```
+
+This feature requires an OpenAI API key and will generate a unique image that matches the content of each subtitle segment.
 
 ### Additional Options
 

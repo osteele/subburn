@@ -6,6 +6,7 @@
 - [uv](https://github.com/astral-sh/uv) - Python package installer and virtual environment manager
 - [just](https://github.com/casey/just) - Command runner
 - FFmpeg - Required for video processing
+- DALL-E - Required for image generation (when using `--generate-images`)
 
 ## Installation
 
@@ -45,7 +46,28 @@
 
 ## Environment Variables
 
-- `OPENAI_API_KEY` - Required for automatic transcription using OpenAI's Whisper API
+- `OPENAI_API_KEY` - Required for:
+  - Automatic transcription using OpenAI's Whisper API
+  - Image generation using DALL-E (when using `--generate-images`)
+
+## Features
+
+### Automatic Transcription
+Use Whisper API to automatically transcribe audio:
+```bash
+subburn audio.mp3
+```
+
+### Image Generation
+Generate background images for each segment using DALL-E:
+```bash
+subburn audio.mp3 --generate-images
+```
+
+Customize the image style:
+```bash
+subburn audio.mp3 --generate-images --image-style "A watercolor painting in pastel colors"
+```
 
 ## Project Structure
 
@@ -55,4 +77,3 @@ subburn/
 ├── tests/           # Test files
 ├── docs/            # Documentation
 └── pyproject.toml   # Project configuration and dependencies
-```

@@ -17,8 +17,34 @@ Creates videos with burnt-in subtitles from audio or video files.
 - `--height INTEGER` - Output video height
 - `--open` - Open the output file after creation
 - `--whisper/--no-whisper` - Force/disable Whisper transcription
+- `--generate-images` - Generate images for each segment using DALL-E
+- `--image-style TEXT` - Style prompt for generated images (default: "A minimalist, artistic illustration")
 
 ## Core Functions
+
+### Image Generation
+
+```python
+def generate_image_for_text(
+    text: str,
+    style: str,
+    output_dir: Path,
+    progress: Progress,
+    task_id: int,
+) -> Path
+```
+
+Generates an image for a given text segment using DALL-E.
+
+```python
+def generate_images_for_segments(
+    segments: list,
+    style: str,
+    progress: Progress,
+) -> dict[float, Path]
+```
+
+Generates images for each transcript segment, returning a mapping of timestamps to image paths.
 
 ### Transcription
 
