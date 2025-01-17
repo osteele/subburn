@@ -2,7 +2,7 @@ default:
     @just --list
 
 # Run all checks (type checking and linting)
-check:
+check: fix
     uv run --dev python -m mypy src/
     uv run --dev ruff check src/
     uv run --dev python -m black --check src/
@@ -10,6 +10,10 @@ check:
 # Format code
 fmt:
     uv run --dev python -m black src/
+    uv run --dev python -m ruff check --fix src/
+
+# Fix code
+fix:
     uv run --dev python -m ruff check --fix src/
 
 # Run tests
