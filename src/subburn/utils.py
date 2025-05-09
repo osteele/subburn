@@ -144,20 +144,81 @@ def escape_path(path: Path) -> str:
     return str(path).replace(":", "\\\\:")
 
 
-def create_subtitles_filter(subtitle_path: Path, font_name: str, font_size: int = 24) -> str:
+def find_cjk_compatible_font() -> str:
+    """Find an installed font with CJK support.
+
+    Attempts to find a font installed on the system that supports CJK characters.
+    Returns a fallback font if no specific CJK font is found.
+
+    Returns:
+        Name of an installed font with CJK support
+    """
+    import subprocess
+    import sys
+
+    # On macOS, directly test for known fonts that have good CJK support
+    if sys.platform == "darwin":
+        # Directly check for Arial Unicode MS which is known to work well
+        import os
+
+        if os.path.exists("/Library/Fonts/Arial Unicode.ttf") or os.path.exists(
+            "/System/Library/Fonts/Supplemental/Arial Unicode.ttf"
+        ):
+            return "Arial Unicode MS"
+
+        # Directly check for common macOS CJK fonts
+        try:
+            for mac_font in ["Arial Unicode MS", "Hiragino Sans GB", "PingFang SC"]:
+                result = subprocess.run(["fc-list", f":{mac_font}"], capture_output=True, text=True)
+                if result.returncode == 0 and result.stdout.strip():
+                    return mac_font
+        except (FileNotFoundError, subprocess.SubprocessError):
+            # Fall back to the macOS default below
+            pass
+
+    # Try to find any installed font that supports Chinese
+    try:
+        # Get all fonts that support Chinese characters
+        result = subprocess.run(["fc-list", ":lang=zh"], capture_output=True, text=True)
+
+        if result.returncode == 0 and result.stdout.strip():
+            # Extract the font name from the first available CJK-supporting font
+            first_line = result.stdout.split("\n")[0]
+            if ":" in first_line:
+                font_name = first_line.split(":")[1].split(",")[0].strip()
+                if font_name:
+                    return font_name
+    except (FileNotFoundError, subprocess.SubprocessError):
+        # fc-list command not available or failed, fallback to platform detection
+        pass
+
+    # Platform-specific defaults if all above methods fail
+    if sys.platform == "darwin":  # macOS
+        return "Arial Unicode MS"
+    elif sys.platform == "win32":  # Windows
+        return "Microsoft YaHei"
+    else:  # Linux and others
+        return "Noto Sans CJK"
+
+
+def create_subtitles_filter(subtitle_path: Path, font_name: str | None = None, font_size: int = 24) -> str:
     """Create properly formatted FFmpeg subtitles filter string.
 
     This handles proper escaping of paths and font names for the FFmpeg subtitles filter.
 
     Args:
         subtitle_path: Path to the subtitle file
-        font_name: Name of the font to use
+        font_name: Name of the font to use, or None to auto-detect a CJK compatible font
         font_size: Font size to use
 
     Returns:
         Properly formatted FFmpeg subtitles filter string
     """
     escaped_path = escape_path(subtitle_path)
+
+    # If no font specified, find a CJK compatible font
+    if not font_name:
+        font_name = find_cjk_compatible_font()
 
     # For handling font names in FFmpeg subtitles filter
     # Use a straightforward approach with quotes - this works with LibASS in FFmpeg

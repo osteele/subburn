@@ -100,13 +100,18 @@ def main(
     whisper: Annotated[bool, typer.Option(help="Force transcription with Whisper")] = False,
     generate_images: Annotated[bool, typer.Option(help="Generate images for each subtitle")] = False,
     image_style: Annotated[str, typer.Option(help="Style for generated images")] = "A minimalist, elegant scene",
-    font: Annotated[str, typer.Option(help="Font to use for subtitles (e.g. 'Arial', 'Noto Sans CJK')")] = "Arial",
+    font: Annotated[
+        str | None, typer.Option(help="Font to use for subtitles (e.g. 'Arial Unicode MS', 'Hiragino Sans GB')")
+    ] = None,
     verbose: Annotated[bool, typer.Option("-v", "--verbose", help="Show debug information")] = False,
 ) -> None:
     """Create a video with burnt-in subtitles.
 
-    For Chinese, Japanese, or Korean characters, use a font that supports CJK characters,
-    such as 'Noto Sans CJK', 'Arial Unicode MS', 'Hiragino Sans GB', or 'Microsoft YaHei'.
+    The program automatically detects and uses a font with CJK (Chinese, Japanese, Korean) support.
+    You can also specify a specific font with the --font option. Recommended fonts for CJK:
+    - macOS: 'Arial Unicode MS', 'Hiragino Sans GB', 'PingFang SC'
+    - Windows: 'Microsoft YaHei', 'SimHei', 'MingLiU'
+    - Linux: 'Noto Sans CJK', 'WenQuanYi Micro Hei'
     """
     # Set debug level based on verbose flag
     set_debug_level(1 if verbose else 0)
