@@ -86,6 +86,36 @@ def collect_input_files(files: list[Path]) -> InputFiles:
     return input_files
 
 
+def is_audio_only_container(path: Path) -> bool:
+    """Check if a video container only has audio streams."""
+    try:
+        # Run ffprobe to check for stream types
+        result = subprocess.run(
+            [
+                "ffprobe",
+                "-v",
+                "error",
+                "-show_entries",
+                "stream=codec_type",
+                "-of",
+                "default=noprint_wrappers=1:nokey=1",
+                str(path),
+            ],
+            capture_output=True,
+            text=True,
+            check=True,
+        )
+
+        # Get list of stream types
+        streams = result.stdout.strip().split("\n")
+
+        # If we only have audio streams and no video streams, it's an audio-only container
+        return "audio" in streams and "video" not in streams
+    except subprocess.SubprocessError:
+        # If ffprobe fails, we'll fall back to regular mimetype detection
+        return False
+
+
 def classify_file(path: Path) -> str:
     """Classify a file based on its mimetype and extension."""
     mime_type, _ = mimetypes.guess_type(str(path))
@@ -98,6 +128,9 @@ def classify_file(path: Path) -> str:
     if main_type == "audio":
         return "audio"
     elif main_type == "video":
+        # Check if this is actually an audio-only container (like MP4 with only audio)
+        if is_audio_only_container(path):
+            return "audio"
         return "video"
     elif main_type == "image":
         return "image"
@@ -109,6 +142,28 @@ def classify_file(path: Path) -> str:
 def escape_path(path: Path) -> str:
     """Escape path for use in FFmpeg command."""
     return str(path).replace(":", "\\\\:")
+
+
+def create_subtitles_filter(subtitle_path: Path, font_name: str, font_size: int = 24) -> str:
+    """Create properly formatted FFmpeg subtitles filter string.
+
+    This handles proper escaping of paths and font names for the FFmpeg subtitles filter.
+
+    Args:
+        subtitle_path: Path to the subtitle file
+        font_name: Name of the font to use
+        font_size: Font size to use
+
+    Returns:
+        Properly formatted FFmpeg subtitles filter string
+    """
+    escaped_path = escape_path(subtitle_path)
+
+    # For handling font names in FFmpeg subtitles filter
+    # Use a straightforward approach with quotes - this works with LibASS in FFmpeg
+    # Also add white text with black outline for better visibility
+    style = f"Fontname={font_name},Fontsize={font_size},PrimaryColour=&HFFFFFF,BorderStyle=1,Outline=1,Shadow=1"
+    return f"subtitles={escaped_path}:force_style='{style}'"
 
 
 def open_file_with_app(path: Path) -> None:

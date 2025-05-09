@@ -56,9 +56,13 @@ def generate_image(
                 n=1,
             )
 
+            # Check if response has data
+            if not response.data or len(response.data) == 0:
+                return 0, None
+
             # Get image URL
             image_url = response.data[0].url
-            if not image_url:
+            if image_url is None:
                 return 0, None
 
             # Download image

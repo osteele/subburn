@@ -27,7 +27,7 @@ from .types import TranscriptionSegment
 from .utils import (
     collect_input_files,
     compute_output_path,
-    escape_path,
+    create_subtitles_filter,
     open_file_with_app,
 )
 
@@ -39,32 +39,38 @@ def run_ffmpeg_with_progress(cmd: Sequence[str | Path], progress: Progress, task
     """Run ffmpeg command with progress tracking."""
     progress.update(task_id, description="Processing video")
 
-    try:
-        process = subprocess.Popen(
-            [str(x) for x in cmd],  # Convert all arguments to strings
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-            universal_newlines=True,
-        )
+    process = subprocess.Popen(
+        [str(x) for x in cmd],  # Convert all arguments to strings
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        universal_newlines=True,
+    )
 
-        while True:
-            if not process.stderr:
-                break
+    # Collect stderr output
+    stderr_output = []
 
-            line = process.stderr.readline()
-            if not line:
-                break
+    while True:
+        if not process.stderr:
+            break
 
-            # Update progress based on ffmpeg output
-            if "time=" in line:
-                progress.update(task_id, advance=1)
+        line = process.stderr.readline()
+        if not line:
+            break
 
-        if process.wait() != 0:
-            raise click.ClickException("FFmpeg processing failed")
+        # Store stderr output for error reporting
+        stderr_output.append(line)
 
-        progress.update(task_id, description="Video processing complete", completed=100)
-    except Exception as e:
-        raise click.ClickException(f"FFmpeg processing failed: {e}") from e
+        # Update progress based on ffmpeg output
+        if "time=" in line:
+            progress.update(task_id, advance=1)
+
+    exit_code = process.wait()
+    if exit_code != 0:
+        # Format the error output for readability, focusing on the most relevant parts
+        error_msg = "\n".join(stderr_output[-20:])  # Show the last 20 lines which usually contain the error
+        raise click.ClickException(f"FFmpeg processing failed with exit code {exit_code}:\n\n{error_msg}")
+
+    progress.update(task_id, description="Video processing complete", completed=100)
 
 
 def create_image_list_file(image_timestamps: dict[float, Path], temp_dir: Path) -> Path:
@@ -94,9 +100,14 @@ def main(
     whisper: Annotated[bool, typer.Option(help="Force transcription with Whisper")] = False,
     generate_images: Annotated[bool, typer.Option(help="Generate images for each subtitle")] = False,
     image_style: Annotated[str, typer.Option(help="Style for generated images")] = "A minimalist, elegant scene",
+    font: Annotated[str, typer.Option(help="Font to use for subtitles (e.g. 'Arial', 'Noto Sans CJK')")] = "Arial",
     verbose: Annotated[bool, typer.Option("-v", "--verbose", help="Show debug information")] = False,
 ) -> None:
-    """Create a video with burnt-in subtitles."""
+    """Create a video with burnt-in subtitles.
+
+    For Chinese, Japanese, or Korean characters, use a font that supports CJK characters,
+    such as 'Noto Sans CJK', 'Arial Unicode MS', 'Hiragino Sans GB', or 'Microsoft YaHei'.
+    """
     # Set debug level based on verbose flag
     set_debug_level(1 if verbose else 0)
 
@@ -114,6 +125,15 @@ def main(
             # Collect and validate input files
             input_files = collect_input_files([Path(f) for f in files])
             output_path = output or compute_output_path(input_files)
+
+            # Prevent overwriting input files
+            if (input_files.audio and output_path.resolve() == input_files.audio.resolve()) or (
+                input_files.video and output_path.resolve() == input_files.video.resolve()
+            ):
+                raise click.UsageError(
+                    f"Output file would overwrite input file: {output_path}\n"
+                    f"Please specify a different output file using the --output option"
+                )
 
             # Get or create subtitle file
             if not input_files.subtitle and not whisper:
@@ -256,7 +276,7 @@ def main(
                         f"[0:v]scale={width}:{height}:force_original_aspect_ratio=decrease",
                         f"pad={width}:{height}:(ow-iw)/2:(oh-ih)/2[bg]",
                         # Add subtitles
-                        f"[bg]subtitles={escape_path(input_files.subtitle)}:force_style='Fontsize=24'[v]",
+                        f"[bg]{create_subtitles_filter(input_files.subtitle, font)}[v]",
                     ]
 
                     # Add filter complex and mapping
@@ -276,7 +296,7 @@ def main(
                     cmd.extend(
                         [
                             "-vf",
-                            f"subtitles={escape_path(input_files.subtitle)}:force_style='Fontsize=24'",
+                            create_subtitles_filter(input_files.subtitle, font),
                         ]
                     )
                 else:
@@ -289,7 +309,7 @@ def main(
                             "-i",
                             str(input_files.audio or input_files.video),
                             "-vf",
-                            f"subtitles={escape_path(input_files.subtitle)}:force_style='Fontsize=24'",
+                            create_subtitles_filter(input_files.subtitle, font),
                         ]
                     )
 
