@@ -1,5 +1,9 @@
 # subburn
 
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
+[![Python: 3.10+](https://img.shields.io/badge/Python-3.10+-blue.svg)](https://www.python.org/downloads/)
+[![Code style: ruff](https://img.shields.io/badge/code%20style-ruff-000000.svg)](https://github.com/charliermarsh/ruff)
+
 Create videos with burnt-in subtitles from audio or video files.
 
 I built this to create study materials for language learning by combining audio
@@ -9,7 +13,7 @@ can show them.
 
 ## Language Learning Use Case
 
-`subburn` is particularly useful for language learners who want to create playable and scrubbable subtitled audio materials from audio lessons and their transcripts.
+`subburn` is particularly useful for language learners who want to create playable and scrubbable subtitled audio materials from audio lessons and their transcripts. For more on language learning approaches and techniques, see [Oliver's Language Learning resources](https://osteele.com/topics/language-learning/).
 
 For example, if you have an audio file of a dialogue and its transcript in SRT format:
 

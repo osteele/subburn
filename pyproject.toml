@@ -2,7 +2,33 @@
 name = "subburn"
 version = "0.1.0"
 description = "Create videos with burnt-in subtitles from audio or video files"
+readme = "README.md"
+license = { text = "MIT" }
 authors = [{ name = "Oliver Steele", email = "steele@osteele.com" }]
+keywords = [
+    "video",
+    "subtitles",
+    "language-learning",
+    "transcription",
+    "whisper",
+]
+urls = { Homepage = "https://github.com/osteele/subburn", "Bug Tracker" = "https://github.com/osteele/subburn/issues" }
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Environment :: Console",
+    "Intended Audience :: Education",
+    "Intended Audience :: End Users/Desktop",
+    "License :: OSI Approved :: MIT License",
+    "Natural Language :: English",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Education",
+    "Topic :: Multimedia :: Sound/Audio",
+    "Topic :: Multimedia :: Video",
+    "Topic :: Utilities",
+]
 dependencies = [
     "click>=8.1.7",
     "rich>=13.7.0",
