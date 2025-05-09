@@ -5,9 +5,10 @@ import sys
 import tempfile
 from collections.abc import Sequence
 from pathlib import Path
-from typing import cast
+from typing import Annotated, cast
 
 import click
+import typer
 from rich.console import Console
 from rich.progress import (
     BarColumn,
@@ -31,6 +32,7 @@ from .utils import (
 )
 
 console = Console()
+app = typer.Typer()
 
 
 def run_ffmpeg_with_progress(cmd: Sequence[str | Path], progress: Progress, task_id: TaskID) -> None:
@@ -82,26 +84,17 @@ def create_image_list_file(image_timestamps: dict[float, Path], temp_dir: Path) 
     return image_list_path
 
 
-@click.command()
-@click.argument("files", nargs=-1, type=click.Path(exists=True, path_type=Path))
-@click.option("-o", "--output", type=click.Path(path_type=Path), help="Output file path")
-@click.option("-w", "--width", type=int, default=1024, help="Output video width")
-@click.option("-h", "--height", type=int, default=1024, help="Output video height")
-@click.option("--open", "should_open", is_flag=True, help="Open the output file when done")
-@click.option("--whisper", is_flag=True, help="Force transcription with Whisper")
-@click.option("--generate-images", is_flag=True, help="Generate images for each subtitle")
-@click.option("--image-style", default="A minimalist, elegant scene", help="Style for generated images")
-@click.option("-v", "--verbose", is_flag=True, help="Show debug information")
+@app.command()
 def main(
-    files: tuple[Path, ...],
-    output: Path | None,
-    width: int = 1024,
-    height: int = 1024,
-    should_open: bool = False,
-    whisper: bool = False,
-    generate_images: bool = False,
-    image_style: str = "A minimalist, elegant scene",
-    verbose: bool = False,
+    files: Annotated[list[Path], typer.Argument(help="Input files")],
+    output: Annotated[Path | None, typer.Option("-o", "--output", help="Output file path")] = None,
+    width: Annotated[int, typer.Option("-w", "--width", help="Output video width")] = 1024,
+    height: Annotated[int, typer.Option("-h", "--height", help="Output video height")] = 1024,
+    should_open: Annotated[bool, typer.Option("--open", help="Open the output file when done")] = False,
+    whisper: Annotated[bool, typer.Option(help="Force transcription with Whisper")] = False,
+    generate_images: Annotated[bool, typer.Option(help="Generate images for each subtitle")] = False,
+    image_style: Annotated[str, typer.Option(help="Style for generated images")] = "A minimalist, elegant scene",
+    verbose: Annotated[bool, typer.Option("-v", "--verbose", help="Show debug information")] = False,
 ) -> None:
     """Create a video with burnt-in subtitles."""
     # Set debug level based on verbose flag
@@ -348,4 +341,4 @@ def main(
 
 
 if __name__ == "__main__":
-    main()
+    app()

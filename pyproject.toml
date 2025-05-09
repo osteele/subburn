@@ -30,10 +30,10 @@ classifiers = [
     "Topic :: Utilities",
 ]
 dependencies = [
-    "click>=8.1.7",
-    "rich>=13.7.0",
-    "openai>=1.6.0",
-    "requests>=2.31.0",  # For downloading images
+    "typer>=0.15.3",
+    "rich>=14.0.0",
+    "openai>=1.78.0",
+    "requests>=2.31.0", # For downloading images
 ]
 requires-python = ">=3.10"
 
@@ -66,7 +66,7 @@ pythonVersion = "3.10"
 typeCheckingMode = "standard"
 
 [project.scripts]
-subburn = "subburn.cli:main"
+subburn = "subburn.cli:app"
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

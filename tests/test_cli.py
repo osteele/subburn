@@ -4,7 +4,7 @@ from collections.abc import Generator
 from pathlib import Path
 
 import pytest
-from click.testing import CliRunner
+from typer.testing import CliRunner
 
 from subburn.utils import (
     InputFiles,
