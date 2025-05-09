@@ -1,7 +1,6 @@
 """Shared test fixtures."""
 
 import pytest
-from pathlib import Path
 
 
 @pytest.fixture
@@ -19,15 +18,4 @@ This is a test."""
 @pytest.fixture
 def sample_segments() -> list[dict]:
     """Return sample Whisper segments."""
-    return [
-        {
-            "start": 0.0,
-            "end": 2.0,
-            "text": "Hello, world!"
-        },
-        {
-            "start": 2.0,
-            "end": 4.0,
-            "text": "This is a test."
-        }
-    ]
+    return [{"start": 0.0, "end": 2.0, "text": "Hello, world!"}, {"start": 2.0, "end": 4.0, "text": "This is a test."}]

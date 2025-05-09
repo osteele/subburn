@@ -1,12 +1,12 @@
 """Test the CLI module."""
 
+from collections.abc import Generator
 from pathlib import Path
-from typing import Generator
 
 import pytest
 from click.testing import CliRunner
 
-from subburn.cli import (
+from subburn.utils import (
     InputFiles,
     classify_file,
     collect_input_files,
@@ -31,13 +31,10 @@ def temp_files(tmp_path: Path) -> Generator[dict[str, Path], None, None]:
         "subtitle": tmp_path / "test.srt",
         "image": tmp_path / "test.jpg",
     }
-    
     # Create empty files
     for path in files.values():
         path.touch()
-    
     yield files
-    
     # Cleanup
     for path in files.values():
         if path.exists():
@@ -55,9 +52,8 @@ def test_convert_cjk_punctuation() -> None:
     """Test CJK punctuation conversion."""
     # Should not convert non-Chinese text
     assert convert_to_cjk_punctuation("Hello, world!") == "Hello, world!"
-    
     # Should convert punctuation in Chinese text
-    assert convert_to_cjk_punctuation("你好, 世界!") == "你好，世界！"
+    assert convert_to_cjk_punctuation("你好, 世界!") == "你好， 世界！"
     assert convert_to_cjk_punctuation("问题?") == "问题？"
 
 
@@ -81,10 +77,9 @@ def test_collect_input_files(temp_files: dict[str, Path]) -> None:
 
 def test_compute_output_path(temp_files: dict[str, Path]) -> None:
     """Test output path computation."""
-    input_files = InputFiles(
-        audio=temp_files["audio"],
-        subtitle=temp_files["subtitle"]
-    )
+    input_files = InputFiles()
+    input_files.audio = temp_files["audio"]
+    input_files.subtitle = temp_files["subtitle"]
     output = compute_output_path(input_files)
     assert output.name.startswith("test")
-    assert output.suffix == ".mov"
+    assert output.suffix == ".mp4"

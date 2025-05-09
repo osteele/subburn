@@ -3,23 +3,26 @@ default:
 
 # Run all checks (type checking and linting)
 check: fix
-    uv run --dev python -m mypy src/
     uv run --dev ruff check src/
-    uv run --dev python -m black --check src/
+    uv run --dev pyright src/
 
 # Format code
-fmt:
-    uv run --dev python -m black src/
-    uv run --dev python -m ruff check --fix src/
+format:
+    uv run --dev ruff format src/
 
 # Fix code
 fix:
-    uv run --dev python -m ruff check --fix src/
+    uv run --dev ruff format src/
+    uv run --dev ruff check --fix --unsafe-fixes src/
 
 # Run tests
-test:
-    uv run --dev python -m pytest tests/
+test *ARGS:
+    uv run --dev python -m pytest tests/ {{ARGS}}
+
+# Type check
+typecheck:
+    uv run --dev pyright src/
 
 # Install the package in development mode
 install:
-    uv pip install -e ".[dev]"
+    uv pip install -e .

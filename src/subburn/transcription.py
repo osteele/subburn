@@ -57,7 +57,7 @@ def get_audio_duration(file_path: str, progress: Progress, task_id: TaskID) -> f
         progress.update(task_id, advance=5)
         return duration
     except (subprocess.CalledProcessError, ValueError) as e:
-        raise click.ClickException(f"Failed to get audio duration: {e}")
+        raise click.ClickException(f"Failed to get audio duration: {e}") from e
 
 
 def transcribe_audio(audio_path: Path, progress: Progress, task_id: TaskID) -> tuple[Path, list[TranscriptionSegment]]:

@@ -20,7 +20,7 @@ def debug_print(message: str, *args: Any, level: int = 1) -> None:
         *args: Additional arguments to format the message with
         level: Debug level required to print this message
     """
-    if DEBUG_LEVEL >= level:
+    if level <= DEBUG_LEVEL:
         if args:
             print(message.format(*args))
         else:

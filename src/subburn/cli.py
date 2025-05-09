@@ -3,8 +3,9 @@
 import subprocess
 import sys
 import tempfile
+from collections.abc import Sequence
 from pathlib import Path
-from typing import Sequence, cast
+from typing import cast
 
 import click
 from rich.console import Console
@@ -61,7 +62,7 @@ def run_ffmpeg_with_progress(cmd: Sequence[str | Path], progress: Progress, task
 
         progress.update(task_id, description="Video processing complete", completed=100)
     except Exception as e:
-        raise click.ClickException(f"FFmpeg processing failed: {e}")
+        raise click.ClickException(f"FFmpeg processing failed: {e}") from e
 
 
 def create_image_list_file(image_timestamps: dict[float, Path], temp_dir: Path) -> Path:
@@ -72,10 +73,7 @@ def create_image_list_file(image_timestamps: dict[float, Path], temp_dir: Path) 
     with open(image_list_path, "w") as f:
         for i, start in enumerate(timestamps):
             image_path = image_timestamps[start]
-            if i < len(timestamps) - 1:
-                duration = timestamps[i + 1] - start
-            else:
-                duration = 5.0
+            duration = timestamps[i + 1] - start if i < len(timestamps) - 1 else 5.0
 
             f.write(f"file '{image_path}'\n")
             f.write(f"duration {duration}\n")
@@ -168,10 +166,10 @@ def main(
                 if generate_images:
                     debug_print("Reading existing subtitle file for image generation...")
                     try:
-                        with open(input_files.subtitle, "r", encoding="utf-8") as f:
+                        with open(input_files.subtitle, encoding="utf-8") as f:
                             srt_content = f.read()
-                    except (IOError, OSError) as e:
-                        raise click.BadParameter(f"Failed to read subtitle file: {e}")
+                    except OSError as e:
+                        raise click.BadParameter(f"Failed to read subtitle file: {e}") from e
 
                     # Parse SRT content into segments
                     parsed_segments: list[TranscriptionSegment] = []

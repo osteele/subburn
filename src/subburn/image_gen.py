@@ -4,7 +4,6 @@ import os
 import tempfile
 import time
 from pathlib import Path
-from typing import Optional
 
 import httpx
 from openai import OpenAI, OpenAIError
@@ -36,7 +35,7 @@ def generate_image(
     style_prompt: str,
     output_dir: Path,
     segment_index: int,
-) -> tuple[float, Optional[Path]]:
+) -> tuple[float, Path | None]:
     """Generate an image for the given text using DALL-E."""
     api_key = check_openai_api_key()
     client = OpenAI(api_key=api_key)
