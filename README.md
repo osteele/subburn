@@ -161,18 +161,9 @@ This prevents redundant API calls when processing the same content multiple time
 
 ## Development
 
-This project uses `uv` for dependency management and development tools.
+See [CONTRIBUTING.md](CONTRIBUTING.md) for development setup and guidelines.
 
-```bash
-# Install development dependencies
-uv pip install -e ".[dev]"
-
-# Run tests
-just test
-
-# Run linting and type checking
-just check
-```
+For more technical documentation, see the [docs/](docs/) directory.
 
 ## License
 

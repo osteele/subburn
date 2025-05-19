@@ -1,4 +1,4 @@
-# Getting Started
+# Contributing to Subburn
 
 ## Prerequisites
 
