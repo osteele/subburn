@@ -191,6 +191,12 @@ wheels = [
 ]
 
 [[package]]
+name = "jieba"
+version = "0.42.1"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/c6/cb/18eeb235f833b726522d7ebed54f2278ce28ba9438e3135ab0278d9792a2/jieba-0.42.1.tar.gz", hash = "sha256:055ca12f62674fafed09427f176506079bc135638a14e23e25be909131928db2", size = 19214172 }
+
+[[package]]
 name = "jiter"
 version = "0.9.0"
 source = { registry = "https://pypi.org/simple" }
@@ -428,6 +434,15 @@ wheels = [
 ]
 
 [[package]]
+name = "pypinyin"
+version = "0.54.0"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/c9/7f/81cb5416ddacfeccca8eeedcd3543a72b093b26d9c4ca7bde8beea733e4e/pypinyin-0.54.0.tar.gz", hash = "sha256:9ab0d07ff51d191529e22134a60e109d0526d80b7a80afa73da4c89521610958", size = 837455 }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/b6/ec/2c04ac863e7a85bb68b0b655cec2f19853d51d305ce3d785848db6037b8d/pypinyin-0.54.0-py2.py3-none-any.whl", hash = "sha256:5f776f19b9fd922e4121a114810b22048d90e6e8037fb1c07f4c40f987ae6e7a", size = 837012 },
+]
+
+[[package]]
 name = "pyright"
 version = "1.1.400"
 source = { registry = "https://pypi.org/simple" }
@@ -534,7 +549,10 @@ name = "subburn"
 version = "0.1.0"
 source = { editable = "." }
 dependencies = [
+    { name = "jieba" },
     { name = "openai" },
+    { name = "pydantic" },
+    { name = "pypinyin" },
     { name = "requests" },
     { name = "rich" },
     { name = "typer" },
@@ -549,7 +567,10 @@ dev = [
 
 [package.metadata]
 requires-dist = [
+    { name = "jieba", specifier = ">=0.42.1" },
     { name = "openai", specifier = ">=1.78.0" },
+    { name = "pydantic", specifier = ">=2.11.4" },
+    { name = "pypinyin", specifier = ">=0.54.0" },
     { name = "requests", specifier = ">=2.31.0" },
     { name = "rich", specifier = ">=14.0.0" },
     { name = "typer", specifier = ">=0.15.3" },

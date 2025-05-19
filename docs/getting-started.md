@@ -49,6 +49,7 @@
 - `OPENAI_API_KEY` - Required for:
   - Automatic transcription using OpenAI's Whisper API
   - Image generation using DALL-E (when using `--generate-images`)
+  - Translation of subtitles (when using `--translation`)
 
 ## Features
 
@@ -56,6 +57,26 @@
 Use Whisper API to automatically transcribe audio:
 ```bash
 subburn audio.mp3
+```
+
+### Chinese Language Support
+
+#### Pinyin Generation
+Add pinyin above Chinese subtitles:
+```bash
+subburn audio.mp3 --pinyin
+```
+
+#### Translation
+Add English translations below subtitles:
+```bash
+subburn audio.mp3 --translation
+```
+
+#### Combined Pinyin and Translation
+Use both features together:
+```bash
+subburn audio.mp3 --pinyin --translation
 ```
 
 ### Image Generation

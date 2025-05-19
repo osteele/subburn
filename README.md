@@ -15,6 +15,8 @@ can show them.
 
 `subburn` is particularly useful for language learners who want to create playable and scrubbable subtitled audio materials from audio lessons and their transcripts. For more on language learning approaches and techniques, see [Oliver's Language Learning resources](https://osteele.com/topics/language-learning/).
 
+### Basic Subtitles
+
 For example, if you have an audio file of a dialogue and its transcript in SRT format:
 
 ```bash
@@ -22,6 +24,23 @@ subburn "mandarin-dialogue.mp3" "dialogue-transcript.srt" --open
 ```
 
 This will create a video with the dialogue audio and synchronized subtitles, perfect for shadowing practice or reading along while listening.
+
+### Enhanced Chinese Learning
+
+For Chinese language learning, you can use the pinyin and translation features:
+
+```bash
+# Add pinyin above Chinese characters
+subburn "chinese-lesson.mp3" "transcript.srt" --pinyin --open
+
+# Add English translations below Chinese text
+subburn "chinese-lesson.mp3" "transcript.srt" --translation --open
+
+# Use both for comprehensive learning
+subburn "chinese-lesson.mp3" "transcript.srt" --pinyin --translation --open
+```
+
+This creates a three-line display with pinyin, Chinese characters, and English translation—ideal for Chinese language learners at any level.
 
 # Features
 
@@ -33,6 +52,8 @@ This will create a video with the dialogue audio and synchronized subtitles, per
 - ⏳ Show progress with a beautiful TUI
 - 🚀 Open the created video when done
 - 🎯 Automatic transcription using OpenAI Whisper
+- 🈳 Support for Chinese with pinyin and translations
+- 💾 Caches translations to avoid redundant API calls
 
 ## Installation
 
@@ -63,6 +84,36 @@ To disable automatic transcription:
 ```bash
 subburn audio.mp3 --no-whisper
 ```
+
+### Chinese Language Support
+
+`subburn` provides special support for Chinese language content with pinyin and translations:
+
+#### Add Pinyin
+
+Generate pinyin above Chinese subtitles to help with pronunciation:
+
+```bash
+subburn chinese_audio.mp3 --pinyin
+```
+
+#### Add English Translations
+
+Add English translations below Chinese subtitles:
+
+```bash
+subburn chinese_audio.mp3 --translation
+```
+
+#### Combine Both Features
+
+Use both pinyin and translation for comprehensive language learning:
+
+```bash
+subburn chinese_audio.mp3 --pinyin --translation
+```
+
+These features require an OpenAI API key for translation. Translations are cached to minimize API usage.
 
 ### Dynamic Background Images
 
@@ -98,6 +149,15 @@ subburn input.mp3 subtitles.srt -o output.mov
 ```
 
 If no output file is specified, the script will create a `.mov` file with the same name as the input audio or video file.
+
+## Cache
+
+Translations are cached in the XDG cache directory:
+- Linux: `~/.cache/subburn/`
+- macOS: `~/Library/Caches/subburn/`
+- Windows: `%LOCALAPPDATA%\subburn\Cache\`
+
+This prevents redundant API calls when processing the same content multiple times.
 
 ## Development
 

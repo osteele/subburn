@@ -1,15 +1,13 @@
 """Common types used across subburn modules."""
 
-from typing import TypedDict
+from dataclasses import dataclass
 
 
-class TranscriptionSegment(TypedDict):
+@dataclass
+class Segment:
     """A segment of transcribed text with timing information."""
 
     start: float
     end: float
     text: str
-
-
-# This is the same as TranscriptionSegment, just aliased for historical reasons
-Segment = TranscriptionSegment
+    translation: str | None = None  # Optional English translation

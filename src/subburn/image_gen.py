@@ -117,14 +117,14 @@ def generate_images_for_segments(
         rate_limiter.wait()
 
         timestamp, image_path = generate_image(
-            segment["text"],
+            segment.text,
             style_prompt,
             output_dir,
             i,
         )
 
         if image_path:
-            image_timestamps[segment["start"]] = image_path
+            image_timestamps[segment.start] = image_path
 
         progress.update(task_id, advance=1)
 

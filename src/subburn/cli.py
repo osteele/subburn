@@ -8,6 +8,7 @@ from pathlib import Path
 from typing import Annotated, cast
 
 import click
+import openai
 import typer
 from rich.console import Console
 from rich.progress import (
@@ -23,7 +24,7 @@ from rich.progress import (
 from . import image_gen
 from .debug import debug_print, set_debug_level
 from .transcription import get_audio_duration, transcribe_audio
-from .types import TranscriptionSegment
+from .types import Segment
 from .utils import (
     collect_input_files,
     compute_output_path,
@@ -103,6 +104,8 @@ def main(
     font: Annotated[
         str | None, typer.Option(help="Font to use for subtitles (e.g. 'Arial Unicode MS', 'Hiragino Sans GB')")
     ] = None,
+    pinyin: Annotated[bool, typer.Option(help="Add pinyin to Chinese subtitles")] = False,
+    translation: Annotated[bool, typer.Option(help="Add English translation to subtitles")] = False,
     verbose: Annotated[bool, typer.Option("-v", "--verbose", help="Show debug information")] = False,
 ) -> None:
     """Create a video with burnt-in subtitles.
@@ -149,7 +152,7 @@ def main(
                     whisper = True
 
             # Initialize variables
-            whisper_segments: list[TranscriptionSegment] = []
+            whisper_segments: list[Segment] = []
             image_timestamps: dict[float, Path] = {}
 
             if whisper:
@@ -160,6 +163,8 @@ def main(
                     input_files.audio,
                     progress,
                     task_id,
+                    pinyin=pinyin,
+                    translation=translation,
                 )
                 debug_print("Transcription complete. Generated {} segments", len(whisper_segments))
 
@@ -181,8 +186,10 @@ def main(
                 if not input_files.subtitle:
                     raise click.BadParameter("No subtitle file found")
                 debug_print("Using existing subtitle file: {}", input_files.subtitle)
-                if generate_images:
-                    debug_print("Reading existing subtitle file for image generation...")
+
+                # If we need to process the subtitle file for images, pinyin, or translation
+                if generate_images or pinyin or translation:
+                    debug_print("Reading existing subtitle file for processing...")
                     try:
                         with open(input_files.subtitle, encoding="utf-8") as f:
                             srt_content = f.read()
@@ -190,8 +197,8 @@ def main(
                         raise click.BadParameter(f"Failed to read subtitle file: {e}") from e
 
                     # Parse SRT content into segments
-                    parsed_segments: list[TranscriptionSegment] = []
-                    current_segment = TranscriptionSegment(
+                    parsed_segments: list[Segment] = []
+                    current_segment = Segment(
                         start=0.0,
                         end=0.0,
                         text="",
@@ -199,9 +206,9 @@ def main(
                     for line in srt_content.strip().split("\n"):
                         line = line.strip()
                         if not line:
-                            if current_segment["text"]:
+                            if current_segment.text:
                                 parsed_segments.append(current_segment)
-                                current_segment = TranscriptionSegment(
+                                current_segment = Segment(
                                     start=0.0,
                                     end=0.0,
                                     text="",
@@ -211,22 +218,42 @@ def main(
                             start, end = line.split("-->")
                             start = start.strip().replace(",", ".")
                             end = end.strip().replace(",", ".")
-                            current_segment["start"] = (
+                            current_segment.start = (
                                 float(start.split(":")[0]) * 3600
                                 + float(start.split(":")[1]) * 60
                                 + float(start.split(":")[2])
                             )
-                            current_segment["end"] = (
+                            current_segment.end = (
                                 float(end.split(":")[0]) * 3600
                                 + float(end.split(":")[1]) * 60
                                 + float(end.split(":")[2])
                             )
                         elif not line.isdigit():  # Skip segment numbers
-                            current_segment["text"] = line
-                    if current_segment["text"]:
+                            current_segment.text = line
+                    if current_segment.text:
                         parsed_segments.append(current_segment)
 
-                    if parsed_segments:
+                    # Add translations if requested
+                    if translation and parsed_segments:
+                        progress.update(task_id, description="Translating segments", advance=10)
+                        from .translation import translate_segments
+
+                        client = openai.OpenAI()
+                        translate_segments(parsed_segments, client)
+
+                    # Regenerate SRT with pinyin and translation if requested
+                    if pinyin or translation:
+                        from .transcription import create_srt_from_segments
+
+                        srt_content = create_srt_from_segments(
+                            parsed_segments, add_pinyin=pinyin, add_translation=translation
+                        )
+                        with open(input_files.subtitle, "w", encoding="utf-8") as f:
+                            f.write(srt_content)
+                        debug_print("Updated subtitle file with pinyin/translation")
+
+                    # Generate images if requested
+                    if generate_images and parsed_segments:
                         debug_print("Found {} segments in subtitle file", len(parsed_segments))
                         debug_print("Generating images...")
                         image_timestamps = image_gen.generate_images_for_segments(
@@ -238,7 +265,7 @@ def main(
                             debug_print("Generated {} images", len(image_timestamps))
                         else:
                             debug_print("No images were generated")
-                    else:
+                    elif generate_images:
                         debug_print("No segments found in subtitle file")
 
             if not input_files.subtitle:
