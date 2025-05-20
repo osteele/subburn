@@ -1,12 +1,19 @@
 """Tests for translation module."""
 
-import pytest
+import json
+import tempfile
+from pathlib import Path
 from unittest.mock import Mock, patch
 
+import pytest
+
 from subburn.translation import (
+    DEFAULT_MODEL_PARAMS,
     Translation,
     TranslationResponse,
     contains_chinese,
+    get_translation_key_params,
+    serialize_segments,
     translate_segments,
 )
 from subburn.types import Segment
@@ -29,10 +36,48 @@ class TestContainsChinese:
         # Note: 日本語 contains CJK ideographs, so it would return True
 
 
+class TestTranslationUtils:
+    """Test translation utility functions."""
+
+    def test_serialize_segments(self) -> None:
+        """Test serialization of segments to JSON string."""
+        segments = [
+            Segment(start=0.0, end=1.0, text="Hello world"),
+            Segment(start=1.0, end=2.0, text="你好世界"),
+        ]
+        
+        serialized = serialize_segments(segments)
+        
+        # Verify it's a valid JSON string
+        parsed = json.loads(serialized)
+        assert isinstance(parsed, list)
+        assert len(parsed) == 2
+        
+        # Check that only the necessary fields are included
+        assert "start" in parsed[0]
+        assert "end" in parsed[0]
+        assert "text" in parsed[0]
+        assert "translation" not in parsed[0]
+        
+        # Check actual values
+        assert parsed[0]["text"] == "Hello world"
+        assert parsed[1]["text"] == "你好世界"
+    
+    def test_get_translation_key_params(self) -> None:
+        """Test generation of model parameters for cache key."""
+        params = get_translation_key_params()
+        
+        # Check that default parameters are included
+        assert params["model"] == DEFAULT_MODEL_PARAMS.model
+        assert params["temperature"] == DEFAULT_MODEL_PARAMS.temperature
+        assert params["system_prompt"] == DEFAULT_MODEL_PARAMS.system_prompt
+
+
 class TestTranslateSegments:
     """Test segment translation functionality."""
 
-    def test_translate_segments_with_chinese(self) -> None:
+    @patch("openai.OpenAI")
+    def test_translate_segments_with_chinese(self, mock_openai_client) -> None:
         """Test translation of segments containing Chinese text."""
         # Create test segments
         segments = [
@@ -43,6 +88,7 @@ class TestTranslateSegments:
         
         # Create mock OpenAI client
         mock_client = Mock()
+        mock_openai_client.return_value = mock_client
         mock_response = Mock()
         mock_message = Mock()
         
@@ -60,7 +106,8 @@ class TestTranslateSegments:
         mock_client.beta.chat.completions.parse.return_value = mock_response
         
         # Call the function
-        translate_segments(segments, mock_client)
+        with patch("os.environ", {"OPENAI_API_KEY": "fake-key"}):
+            result = translate_segments(segments)
         
         # Verify the API was called correctly
         mock_client.beta.chat.completions.parse.assert_called_once()
@@ -80,11 +127,17 @@ class TestTranslateSegments:
         assert "2. 再见" in messages[1]["content"]
         
         # Verify translations were assigned
-        assert segments[0].translation is None  # English text not translated
-        assert segments[1].translation == "Hello world"
-        assert segments[2].translation == "Goodbye"
+        assert result[0].translation is None  # English text not translated
+        assert result[1].translation == "Hello world"
+        assert result[2].translation == "Goodbye"
+        
+        # Verify original segments were not modified
+        assert segments[0].translation is None
+        assert segments[1].translation is None
+        assert segments[2].translation is None
 
-    def test_translate_segments_no_chinese(self) -> None:
+    @patch("openai.OpenAI")
+    def test_translate_segments_no_chinese(self, mock_openai_client) -> None:
         """Test translation when no Chinese text is present."""
         segments = [
             Segment(start=0.0, end=1.0, text="Hello world"),
@@ -92,28 +145,37 @@ class TestTranslateSegments:
         ]
         
         mock_client = Mock()
+        mock_openai_client.return_value = mock_client
         
         # Call the function
-        translate_segments(segments, mock_client)
+        with patch("os.environ", {"OPENAI_API_KEY": "fake-key"}):
+            result = translate_segments(segments)
         
         # Verify API was not called
         mock_client.beta.chat.completions.parse.assert_not_called()
         
         # Verify no translations were added
-        assert segments[0].translation is None
-        assert segments[1].translation is None
+        assert result[0].translation is None
+        assert result[1].translation is None
 
-    def test_translate_segments_empty_list(self) -> None:
+    @patch("openai.OpenAI")
+    def test_translate_segments_empty_list(self, mock_openai_client) -> None:
         """Test translation with empty segment list."""
         segments = []
         mock_client = Mock()
+        mock_openai_client.return_value = mock_client
         
-        translate_segments(segments, mock_client)
+        with patch("os.environ", {"OPENAI_API_KEY": "fake-key"}):
+            result = translate_segments(segments)
         
         # Verify API was not called
         mock_client.beta.chat.completions.parse.assert_not_called()
+        
+        # Verify an empty list is returned
+        assert result == []
 
-    def test_translate_segments_preserves_order(self) -> None:
+    @patch("openai.OpenAI")
+    def test_translate_segments_preserves_order(self, mock_openai_client) -> None:
         """Test that translation preserves segment order."""
         segments = [
             Segment(start=0.0, end=1.0, text="第一"),
@@ -122,6 +184,7 @@ class TestTranslateSegments:
         ]
         
         mock_client = Mock()
+        mock_openai_client.return_value = mock_client
         mock_response = Mock()
         mock_message = Mock()
         
@@ -136,14 +199,16 @@ class TestTranslateSegments:
         mock_response.choices = [Mock(message=mock_message)]
         mock_client.beta.chat.completions.parse.return_value = mock_response
         
-        translate_segments(segments, mock_client)
+        with patch("os.environ", {"OPENAI_API_KEY": "fake-key"}):
+            result = translate_segments(segments)
         
         # Check correct segments were translated
-        assert segments[0].translation == "First"
-        assert segments[1].translation is None  # English, not translated
-        assert segments[2].translation == "Third"
+        assert result[0].translation == "First"
+        assert result[1].translation is None  # English, not translated
+        assert result[2].translation == "Third"
 
-    def test_translate_segments_missing_translation(self) -> None:
+    @patch("openai.OpenAI")
+    def test_translate_segments_missing_translation(self, mock_openai_client) -> None:
         """Test assertion error when translation is missing."""
         segments = [
             Segment(start=0.0, end=1.0, text="你好"),
@@ -151,6 +216,7 @@ class TestTranslateSegments:
         ]
         
         mock_client = Mock()
+        mock_openai_client.return_value = mock_client
         mock_response = Mock()
         mock_message = Mock()
         
@@ -166,5 +232,6 @@ class TestTranslateSegments:
         mock_client.beta.chat.completions.parse.return_value = mock_response
         
         # Should raise assertion error
-        with pytest.raises(AssertionError, match="Missing translation for segment 2"):
-            translate_segments(segments, mock_client)
+        with patch("os.environ", {"OPENAI_API_KEY": "fake-key"}):
+            with pytest.raises(AssertionError, match="Missing translation for segment 2"):
+                translate_segments(segments)

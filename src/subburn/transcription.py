@@ -148,7 +148,7 @@ def transcribe_audio(
     # Add translations if requested
     if translation and segments:
         progress.update(task_id, description="Translating segments", advance=10)
-        translate_segments(segments, client)
+        segments = translate_segments(segments)
 
     # Create SRT file with pinyin and translation options
     srt_content = create_srt_from_segments(segments, add_pinyin=pinyin, add_translation=translation)

@@ -10,6 +10,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - Chinese language support with pinyin generation using pypinyin and jieba
 - Translation feature for subtitles using OpenAI's GPT-4 API
+- XDG-compliant cache system for translations to reduce API calls
+- Generic caching decorator for function results
 
 ## [0.1.0] - 2025-05-09
 

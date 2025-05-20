@@ -8,7 +8,6 @@ from pathlib import Path
 from typing import Annotated, cast
 
 import click
-import openai
 import typer
 from rich.console import Console
 from rich.progress import (
@@ -207,6 +206,10 @@ def main(
                         line = line.strip()
                         if not line:
                             if current_segment.text:
+                                # Only use the first line of text (the original Chinese)
+                                # This handles cases where the SRT already has pinyin/translation
+                                first_line = current_segment.text.split("\n")[0]
+                                current_segment.text = first_line
                                 parsed_segments.append(current_segment)
                                 current_segment = Segment(
                                     start=0.0,
@@ -229,8 +232,16 @@ def main(
                                 + float(end.split(":")[2])
                             )
                         elif not line.isdigit():  # Skip segment numbers
-                            current_segment.text = line
+                            # Accumulate all text lines (handles multi-line subtitles)
+                            if current_segment.text:
+                                current_segment.text += "\n" + line
+                            else:
+                                current_segment.text = line
                     if current_segment.text:
+                        # Only use the first line of text (the original Chinese)
+                        # This handles cases where the SRT already has pinyin/translation
+                        first_line = current_segment.text.split("\n")[0]
+                        current_segment.text = first_line
                         parsed_segments.append(current_segment)
 
                     # Add translations if requested
@@ -238,8 +249,8 @@ def main(
                         progress.update(task_id, description="Translating segments", advance=10)
                         from .translation import translate_segments
 
-                        client = openai.OpenAI()
-                        translate_segments(parsed_segments, client)
+                        # Get segments with translations (cached or newly translated)
+                        parsed_segments = translate_segments(parsed_segments)
 
                     # Regenerate SRT with pinyin and translation if requested
                     if pinyin or translation:
