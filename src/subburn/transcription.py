@@ -12,11 +12,11 @@ from pypinyin import Style, pinyin
 from rich.progress import Progress, TaskID
 
 from .translation import contains_chinese, translate_segments
-from .types import Segment
+from .types import OpenAIKeyException, Segment, SubtitleOptions
 from .utils import convert_to_cjk_punctuation, format_timestamp
 
 # Configure jieba logger to suppress default messages
-jieba_logger = logging.getLogger('jieba')
+jieba_logger = logging.getLogger("jieba")
 jieba_logger.setLevel(logging.ERROR)
 
 # Avoid printing loading message by setting silent mode
@@ -47,9 +47,19 @@ def generate_pinyin(text: str) -> str:
 
 
 def create_srt_from_segments(
-    segments: list[Segment], *, add_pinyin: bool = False, add_translation: bool = False
+    segments: list[Segment],
+    *,
+    options: SubtitleOptions,
 ) -> str:
-    """Create SRT content from segments with optional pinyin and translation."""
+    """Create SRT content from segments with optional pinyin and translation.
+
+    Args:
+        segments: List of segments to include in SRT
+        options: Subtitle styling configuration
+
+    Returns:
+        SRT content as a string
+    """
     if not segments:
         return ""
 
@@ -63,13 +73,22 @@ def create_srt_from_segments(
         lines = [text]
 
         # Add pinyin if requested and text contains Chinese characters
-        if add_pinyin and contains_chinese(text):
+        if options.show_pinyin and contains_chinese(text):
             pinyin_text = generate_pinyin(text)
-            lines.append(pinyin_text)
+            # Format pinyin text with custom font tag (will work with most players)
+            pinyin_with_style = (
+                f'<font color="#{options.pinyin_color}" size="{options.pinyin_font_size}">{pinyin_text}</font>'
+            )
+            lines.append(pinyin_with_style)
 
         # Add translation if requested and available
-        if add_translation and segment.translation is not None:
-            lines.append(segment.translation)
+        if options.show_translation and segment.translation is not None:
+            # Format translation text with custom font tag
+            translation_with_style = (
+                f'<font color="#{options.translation_color}" '
+                f'size="{options.translation_font_size}">{segment.translation}</font>'
+            )
+            lines.append(translation_with_style)
 
         srt_lines.extend(
             [
@@ -82,16 +101,29 @@ def create_srt_from_segments(
     return "\n".join(srt_lines)
 
 
-def get_audio_duration(file_path: str, progress: Progress, task_id: TaskID) -> float:
-    """Get duration of audio/video file using ffprobe."""
+def get_audio_duration(file_path: str, progress: Progress, task_id: TaskID, verbose: bool = False) -> float:
+    """Get duration of audio/video file using ffprobe.
+
+    Args:
+        file_path: Path to the audio/video file
+        progress: Progress bar object for displaying progress
+        task_id: ID of the progress bar task
+        verbose: Whether to print detailed ffprobe output
+
+    Returns:
+        Duration of the audio/video file in seconds
+    """
     progress.update(task_id, description="Getting audio duration")
+
+    # Set verbosity level for ffprobe
+    verbosity = "info" if verbose else "error"
 
     try:
         result = subprocess.run(
             [
                 "ffprobe",
                 "-v",
-                "error",
+                verbosity,  # Use verbosity level based on verbose flag
                 "-show_entries",
                 "format=duration",
                 "-of",
@@ -114,13 +146,11 @@ def transcribe_audio(
     audio_path: Path,
     progress: Progress,
     task_id: TaskID,
-    *,
-    pinyin: bool = False,
-    translation: bool = False,
+    options: SubtitleOptions,
 ) -> tuple[Path, list[Segment]]:
     """Transcribe audio using OpenAI Whisper API with optional translation."""
     if "OPENAI_API_KEY" not in os.environ:
-        raise ValueError("OPENAI_API_KEY environment variable not set. Please set it to use transcription features.")
+        raise OpenAIKeyException("transcription")
 
     client = openai.OpenAI()
     progress.update(task_id, description="Transcribing audio", advance=10)
@@ -146,12 +176,12 @@ def transcribe_audio(
             segments.append(segment)
 
     # Add translations if requested
-    if translation and segments:
+    if options.show_translation and segments:
         progress.update(task_id, description="Translating segments", advance=10)
         segments = translate_segments(segments)
 
     # Create SRT file with pinyin and translation options
-    srt_content = create_srt_from_segments(segments, add_pinyin=pinyin, add_translation=translation)
+    srt_content = create_srt_from_segments(segments, options=options)
     srt_path = audio_path.with_suffix(".srt")
     with open(srt_path, "w", encoding="utf-8") as f:
         f.write(srt_content)

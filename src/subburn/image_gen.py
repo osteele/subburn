@@ -16,17 +16,14 @@ from .rate_limit import (
     RATE_LIMIT,
     RateLimiter,
 )
-from .types import Segment
+from .types import OpenAIKeyException, Segment
 
 
 def check_openai_api_key() -> str:
     """Check if OpenAI API key is set and valid."""
     api_key = os.getenv("OPENAI_API_KEY")
     if not api_key:
-        raise ValueError(
-            "OPENAI_API_KEY environment variable is not set. "
-            "Get your API key from https://platform.openai.com/account/api-keys"
-        )
+        raise OpenAIKeyException("image generation")
     return api_key
 
 

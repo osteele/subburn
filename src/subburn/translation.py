@@ -8,7 +8,7 @@ import openai
 from pydantic import BaseModel
 
 from .cache import cached
-from .types import Segment
+from .types import OpenAIKeyException, Segment
 
 
 class Translation(BaseModel):
@@ -88,7 +88,7 @@ def translate_segments(
     """
     # Initialize the OpenAI client
     if "OPENAI_API_KEY" not in os.environ:
-        raise ValueError("OPENAI_API_KEY environment variable not set. Please set it to use translation features.")
+        raise OpenAIKeyException("translation")
 
     client = openai.OpenAI()
 

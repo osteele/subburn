@@ -4,7 +4,9 @@ import sys
 from pathlib import Path
 from unittest import mock
 
-from subburn.utils import create_subtitles_filter, find_cjk_compatible_font
+from subburn.movie import create_subtitles_filter
+from subburn.types import SubtitleOptions
+from subburn.utils import find_cjk_compatible_font
 
 
 def test_create_subtitles_filter():
@@ -12,40 +14,53 @@ def test_create_subtitles_filter():
     subtitle_path = Path("/path/to/subtitle.srt")
 
     # Test with simple font name
-    filter_str = create_subtitles_filter(subtitle_path, "Arial")
-    expected = "subtitles=/path/to/subtitle.srt:force_style='Fontname=Arial,Fontsize=24,PrimaryColour=&HFFFFFF,BorderStyle=1,Outline=1,Shadow=1'"
+    options = SubtitleOptions(font_name="Arial")
+    filter_str = create_subtitles_filter(subtitle_path, options)
+    expected = "subtitles=/path/to/subtitle.srt:force_style='Fontname=Arial,Fontsize=28,PrimaryColour=&HFFFFFF,BorderStyle=1,Outline=1,Shadow=1'"
     assert filter_str == expected
 
     # Test with auto-detected font (we'll mock the find_cjk_compatible_font function)
-    with mock.patch("subburn.utils.find_cjk_compatible_font", return_value="Mock CJK Font"):
-        filter_str = create_subtitles_filter(subtitle_path)
-        expected = "subtitles=/path/to/subtitle.srt:force_style='Fontname=Mock CJK Font,Fontsize=24,PrimaryColour=&HFFFFFF,BorderStyle=1,Outline=1,Shadow=1'"
+    with mock.patch("subburn.movie.find_cjk_compatible_font", return_value="Mock CJK Font"):
+        options = SubtitleOptions()
+        filter_str = create_subtitles_filter(subtitle_path, options)
+        expected = "subtitles=/path/to/subtitle.srt:force_style='Fontname=Mock CJK Font,Fontsize=28,PrimaryColour=&HFFFFFF,BorderStyle=1,Outline=1,Shadow=1'"
         assert filter_str == expected
 
     # Test with font name containing spaces
-    filter_str = create_subtitles_filter(subtitle_path, "Arial Unicode MS")
-    expected = "subtitles=/path/to/subtitle.srt:force_style='Fontname=Arial Unicode MS,Fontsize=24,PrimaryColour=&HFFFFFF,BorderStyle=1,Outline=1,Shadow=1'"
+    options = SubtitleOptions(font_name="Arial Unicode MS")
+    filter_str = create_subtitles_filter(subtitle_path, options)
+    expected = "subtitles=/path/to/subtitle.srt:force_style='Fontname=Arial Unicode MS,Fontsize=28,PrimaryColour=&HFFFFFF,BorderStyle=1,Outline=1,Shadow=1'"
     assert filter_str == expected
 
     # Test with CJK font name
-    filter_str = create_subtitles_filter(subtitle_path, "Hiragino Sans GB")
-    expected = "subtitles=/path/to/subtitle.srt:force_style='Fontname=Hiragino Sans GB,Fontsize=24,PrimaryColour=&HFFFFFF,BorderStyle=1,Outline=1,Shadow=1'"
+    options = SubtitleOptions(font_name="Hiragino Sans GB")
+    filter_str = create_subtitles_filter(subtitle_path, options)
+    expected = "subtitles=/path/to/subtitle.srt:force_style='Fontname=Hiragino Sans GB,Fontsize=28,PrimaryColour=&HFFFFFF,BorderStyle=1,Outline=1,Shadow=1'"
     assert filter_str == expected
 
     # Test with font name containing special characters
-    filter_str = create_subtitles_filter(subtitle_path, "Font-With.Special+Chars")
-    expected = "subtitles=/path/to/subtitle.srt:force_style='Fontname=Font-With.Special+Chars,Fontsize=24,PrimaryColour=&HFFFFFF,BorderStyle=1,Outline=1,Shadow=1'"
+    options = SubtitleOptions(font_name="Font-With.Special+Chars")
+    filter_str = create_subtitles_filter(subtitle_path, options)
+    expected = "subtitles=/path/to/subtitle.srt:force_style='Fontname=Font-With.Special+Chars,Fontsize=28,PrimaryColour=&HFFFFFF,BorderStyle=1,Outline=1,Shadow=1'"
     assert filter_str == expected
 
-    # Test with font size
-    filter_str = create_subtitles_filter(subtitle_path, "Arial", 36)
+    # Test with custom font size
+    options = SubtitleOptions(font_name="Arial", original_font_size=36)
+    filter_str = create_subtitles_filter(subtitle_path, options)
     expected = "subtitles=/path/to/subtitle.srt:force_style='Fontname=Arial,Fontsize=36,PrimaryColour=&HFFFFFF,BorderStyle=1,Outline=1,Shadow=1'"
+    assert filter_str == expected
+    
+    # Test with custom color
+    options = SubtitleOptions(font_name="Arial", original_color="FF0000")
+    filter_str = create_subtitles_filter(subtitle_path, options)
+    expected = "subtitles=/path/to/subtitle.srt:force_style='Fontname=Arial,Fontsize=28,PrimaryColour=&HFF0000,BorderStyle=1,Outline=1,Shadow=1'"
     assert filter_str == expected
     
     # Test with path containing colon (like on Windows)
     win_path = Path("C:/path/to/subtitle.srt")
-    filter_str = create_subtitles_filter(win_path, "Arial")
-    expected = "subtitles=C\\\\:/path/to/subtitle.srt:force_style='Fontname=Arial,Fontsize=24,PrimaryColour=&HFFFFFF,BorderStyle=1,Outline=1,Shadow=1'"
+    options = SubtitleOptions(font_name="Arial")
+    filter_str = create_subtitles_filter(win_path, options)
+    expected = "subtitles=C\\\\:/path/to/subtitle.srt:force_style='Fontname=Arial,Fontsize=28,PrimaryColour=&HFFFFFF,BorderStyle=1,Outline=1,Shadow=1'"
     assert filter_str == expected
 
 

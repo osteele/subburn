@@ -113,6 +113,29 @@ Use both pinyin and translation for comprehensive language learning:
 subburn chinese_audio.mp3 --pinyin --translation
 ```
 
+#### Customize Subtitle Appearance
+
+You can customize the appearance of each text component:
+
+```bash
+# Custom colors (hex format without # prefix)
+subburn chinese_audio.mp3 --pinyin --translation \
+  --original-color FFFFFF \
+  --pinyin-color 00FFFF \
+  --translation-color 7FFF7F
+
+# Custom font sizes
+subburn chinese_audio.mp3 --pinyin --translation \
+  --original-font-size 28 \
+  --pinyin-font-size 22 \
+  --translation-font-size 22
+```
+
+Default values:
+- Original text: White (FFFFFF), size 28
+- Pinyin text: Cyan (00FFFF), size 22
+- Translation text: Light green (7FFF7F), size 22
+
 These features require an OpenAI API key for translation. Translations are cached to minimize API usage.
 
 ### Dynamic Background Images

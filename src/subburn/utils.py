@@ -57,32 +57,40 @@ def convert_to_cjk_punctuation(text: str) -> str:
 
 def compute_output_path(input_files: InputFiles, output_dir: Path | None = None) -> Path:
     """Compute output path based on input files.
-    
+
     If output_dir is provided and is a directory, the output file will be
     placed in that directory with a name derived from the input file.
     """
     base_path = input_files.audio or input_files.video
     if not base_path:
         raise click.BadParameter("No input file found")
-    
+
     # If output_dir is provided and is a directory, create a filename in that directory
     if output_dir and output_dir.is_dir():
         # Preserve original filename formatting, just change the extension to .mp4
         filename = f"{base_path.stem}.mp4"
         return output_dir / filename
-    
+
     return base_path.with_suffix(".mp4")
 
 
-def collect_input_files(files: list[Path]) -> InputFiles:
-    """Collect and validate input files."""
+def collect_input_files(files: list[Path], verbose: bool = False) -> InputFiles:
+    """Collect and validate input files.
+
+    Args:
+        files: List of file paths to classify and collect
+        verbose: Whether to print detailed output during file analysis
+
+    Returns:
+        InputFiles object containing classified files
+    """
     input_files = InputFiles()
 
     for file in files:
         if not file.exists():
             raise click.BadParameter(f"File not found: {file}")
 
-        file_type = classify_file(file)
+        file_type = classify_file(file, verbose=verbose)
         if file_type == "audio":
             input_files.audio = file
         elif file_type == "video":
@@ -97,15 +105,26 @@ def collect_input_files(files: list[Path]) -> InputFiles:
     return input_files
 
 
-def is_audio_only_container(path: Path) -> bool:
-    """Check if a video container only has audio streams."""
+def is_audio_only_container(path: Path, verbose: bool = False) -> bool:
+    """Check if a video container only has audio streams.
+
+    Args:
+        path: Path to the media file
+        verbose: Whether to print detailed ffprobe output
+
+    Returns:
+        True if the container only has audio streams, False otherwise
+    """
     try:
         # Run ffprobe to check for stream types
+        # Set verbosity level for ffprobe
+        verbosity = "info" if verbose else "error"
+
         result = subprocess.run(
             [
                 "ffprobe",
                 "-v",
-                "error",
+                verbosity,  # Use verbosity level based on verbose flag
                 "-show_entries",
                 "stream=codec_type",
                 "-of",
@@ -127,8 +146,16 @@ def is_audio_only_container(path: Path) -> bool:
         return False
 
 
-def classify_file(path: Path) -> str:
-    """Classify a file based on its mimetype and extension."""
+def classify_file(path: Path, verbose: bool = False) -> str:
+    """Classify a file based on its mimetype and extension.
+
+    Args:
+        path: Path to the file to classify
+        verbose: Whether to print detailed output from file analysis tools
+
+    Returns:
+        File type classification as a string: "audio", "video", "image", or "subtitle"
+    """
     mime_type, _ = mimetypes.guess_type(str(path))
     if not mime_type:
         if path.suffix.lower() == ".srt":
@@ -140,7 +167,7 @@ def classify_file(path: Path) -> str:
         return "audio"
     elif main_type == "video":
         # Check if this is actually an audio-only container (like MP4 with only audio)
-        if is_audio_only_container(path):
+        if is_audio_only_container(path, verbose=verbose):
             return "audio"
         return "video"
     elif main_type == "image":
@@ -210,32 +237,6 @@ def find_cjk_compatible_font() -> str:
         return "Microsoft YaHei"
     else:  # Linux and others
         return "Noto Sans CJK"
-
-
-def create_subtitles_filter(subtitle_path: Path, font_name: str | None = None, font_size: int = 24) -> str:
-    """Create properly formatted FFmpeg subtitles filter string.
-
-    This handles proper escaping of paths and font names for the FFmpeg subtitles filter.
-
-    Args:
-        subtitle_path: Path to the subtitle file
-        font_name: Name of the font to use, or None to auto-detect a CJK compatible font
-        font_size: Font size to use
-
-    Returns:
-        Properly formatted FFmpeg subtitles filter string
-    """
-    escaped_path = escape_path(subtitle_path)
-
-    # If no font specified, find a CJK compatible font
-    if not font_name:
-        font_name = find_cjk_compatible_font()
-
-    # For handling font names in FFmpeg subtitles filter
-    # Use a straightforward approach with quotes - this works with LibASS in FFmpeg
-    # Also add white text with black outline for better visibility
-    style = f"Fontname={font_name},Fontsize={font_size},PrimaryColour=&HFFFFFF,BorderStyle=1,Outline=1,Shadow=1"
-    return f"subtitles={escaped_path}:force_style='{style}'"
 
 
 def open_file_with_app(path: Path) -> None:
