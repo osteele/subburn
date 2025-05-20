@@ -55,11 +55,22 @@ def convert_to_cjk_punctuation(text: str) -> str:
     return text
 
 
-def compute_output_path(input_files: InputFiles) -> Path:
-    """Compute output path based on input files."""
+def compute_output_path(input_files: InputFiles, output_dir: Path | None = None) -> Path:
+    """Compute output path based on input files.
+    
+    If output_dir is provided and is a directory, the output file will be
+    placed in that directory with a name derived from the input file.
+    """
     base_path = input_files.audio or input_files.video
     if not base_path:
         raise click.BadParameter("No input file found")
+    
+    # If output_dir is provided and is a directory, create a filename in that directory
+    if output_dir and output_dir.is_dir():
+        # Preserve original filename formatting, just change the extension to .mp4
+        filename = f"{base_path.stem}.mp4"
+        return output_dir / filename
+    
     return base_path.with_suffix(".mp4")
 
 

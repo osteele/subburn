@@ -93,7 +93,7 @@ def create_image_list_file(image_timestamps: dict[float, Path], temp_dir: Path) 
 @app.command()
 def main(
     files: Annotated[list[Path], typer.Argument(help="Input files")],
-    output: Annotated[Path | None, typer.Option("-o", "--output", help="Output file path")] = None,
+    output: Annotated[Path | None, typer.Option("-o", "--output", help="Output file path or directory")] = None,
     width: Annotated[int, typer.Option("-w", "--width", help="Output video width")] = 1024,
     height: Annotated[int, typer.Option("-h", "--height", help="Output video height")] = 1024,
     should_open: Annotated[bool, typer.Option("--open", help="Open the output file when done")] = False,
@@ -131,7 +131,12 @@ def main(
 
             # Collect and validate input files
             input_files = collect_input_files([Path(f) for f in files])
-            output_path = output or compute_output_path(input_files)
+            
+            # Handle output path - check if it's a directory
+            if output and output.is_dir():
+                output_path = compute_output_path(input_files, output_dir=output)
+            else:
+                output_path = output or compute_output_path(input_files)
 
             # Prevent overwriting input files
             if (input_files.audio and output_path.resolve() == input_files.audio.resolve()) or (
